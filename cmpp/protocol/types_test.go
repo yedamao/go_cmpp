@@ -7,7 +7,7 @@ import (
 func TestOctetString(t *testing.T) {
 
 	// serialize
-	str_content := "106900010053"
+	str_content := "1069009010053"
 	o := &OctetString{
 		Data:     []byte(str_content),
 		FixedLen: 21,
