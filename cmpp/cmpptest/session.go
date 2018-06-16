@@ -17,7 +17,7 @@ var (
 )
 
 func newSession(rawConn net.Conn) {
-	s := &Session{connp.Conn{Conn: rawConn}}
+	s := &Session{*connp.NewConn(rawConn)}
 
 	go s.start()
 

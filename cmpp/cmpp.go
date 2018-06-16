@@ -47,7 +47,7 @@ func (s *Cmpp) connect(addr string) error {
 	if err != nil {
 		return err
 	}
-	s.Conn = conn.Conn{Conn: connection}
+	s.Conn = *conn.NewConn(connection)
 
 	return nil
 }
