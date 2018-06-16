@@ -1,4 +1,8 @@
 # go_cmpp
+[![Build Status](https://travis-ci.org/yedamao/go_cmpp.svg?branch=master)](https://travis-ci.org/yedamao/go_cmpp)
+[![Go Report Card](https://goreportcard.com/badge/github.com/yedamao/go_cmpp)](https://goreportcard.com/report/github.com/yedamao/go_cmpp)
+[![codecov](https://codecov.io/gh/yedamao/go_cmpp/branch/master/graph/badge.svg)](https://codecov.io/gh/yedamao/go_cmpp)
+
 
 go_cmpp是为SP设计实现的CMPP2.0协议开发工具包。包括cmpp协议包和命令行工具。
 
