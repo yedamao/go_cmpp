@@ -2,6 +2,9 @@ language: go
 go:
     - "1.10"
 
+before_script:
+    - go get github.com/yedamao/go_sgip/sgip/encoding
+
 script:
     - make
 
