@@ -13,3 +13,4 @@
 
 bin
 *.swp
+coverage.txt

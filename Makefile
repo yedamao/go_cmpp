@@ -18,7 +18,7 @@ unit: ## @testing Run the unit tests
 	$(GOTEST) -race -coverprofile=coverage.txt -covermode=atomic $(shell go list ./cmpp/...)
 
 .PHONY: build
-build: clean
+build:
 	$(GOBUILD) -o ./bin/receiver ./cmd/receiver
 	$(GOBUILD) -o ./bin/mockserver ./cmd/mockserver
 	$(GOBUILD) -o ./bin/transmitter ./cmd/transmitter
