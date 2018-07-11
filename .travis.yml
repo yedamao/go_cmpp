@@ -3,7 +3,7 @@ go:
     - "1.10"
 
 before_script:
-    - go get github.com/yedamao/go_sgip/sgip/encoding
+    - go get github.com/yedamao/encoding
 
 script:
     - make
