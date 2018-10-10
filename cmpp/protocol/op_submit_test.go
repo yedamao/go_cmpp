@@ -40,6 +40,23 @@ func TestSubmit(t *testing.T) {
 	}
 }
 
+func BenchmarkSubmit(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+
+		op, _ := NewSubmit(
+			1,
+			1, 1, 1, 1,
+			"", 2, "",
+			0, 0, 0,
+			"", "01", "", "", "",
+			"1069000000", []string{"17600000000", "16600000000"},
+			[]byte("hello haha, test msg"),
+		)
+
+		ParseOperation(op.Serialize())
+	}
+}
+
 func TestSubmitResp(t *testing.T) {
 	op, err := NewSubmitResp(1, 12345, 0)
 	if err != nil {
@@ -56,5 +73,14 @@ func TestSubmitResp(t *testing.T) {
 	if resp.MsgId != op.MsgId ||
 		resp.Result != op.Result {
 		t.Error("parsedLoginResp not equal")
+	}
+}
+
+func BenchmarkSubmitResp(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+
+		op, _ := NewSubmitResp(1, 12345, 0)
+
+		ParseOperation(op.Serialize())
 	}
 }
