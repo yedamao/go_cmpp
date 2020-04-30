@@ -7,16 +7,17 @@ import (
 	"strconv"
 )
 
-// DeliverStat 状态报告
-type DeliverStat struct {
-	MsgId          uint64 // 信息标识
-	Stat           *OctetString
-	SubmitTime     *OctetString
-	DoneTime       *OctetString
-	DestTerminalId *OctetString
-	SMSCSequence   uint32
+// 状态报告
+type Report struct {
+  // SP提交短信（CMPP_SUBMIT）操作时，
+  // 与SP相连的ISMG产生的Msg_Id
+  MsgId          uint64
+  Stat           *OctetString // 发送短信的应答结果
+  SubmitTime     *OctetString
+  DoneTime       *OctetString
+  DestTerminalId *OctetString
+  SMSCSequence   uint32
 }
-
 // ISMG向SP送交短信（CMPP_DELIVER）操作
 //
 // CMPP_DELIVER操作的目的是ISMG把从短信中心
