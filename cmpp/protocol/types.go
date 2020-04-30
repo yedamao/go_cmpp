@@ -3,7 +3,6 @@
 package protocol
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -17,12 +16,10 @@ type OctetString struct {
 
 // 去除补零，转为字符串
 func (o *OctetString) String() string {
-
-	end := bytes.IndexByte(o.Data, 0)
-	if -1 == end {
-		return string(o.Data)
+	end := len(o.Data)
+	for end > 0 && o.Data[end-1] == 0 {
+		end--
 	}
-
 	return string(o.Data[:end])
 }
 
