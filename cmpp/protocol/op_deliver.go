@@ -132,30 +132,28 @@ func ParseDeliver(hdr *Header, data []byte) (*Deliver, error) {
 	return op, nil
 }
 
-func ParseDeliverStat(data []byte) (*DeliverStat, error) {
-	p := 0
-	c := &DeliverStat{}
+func ParseReport(rawData []byte) (*Report, error) {
+  if len(rawData) != 60 {
+    return nil, errors.New("ParseReport: len error")
+  }
 
-	c.MsgId = unpackUi64(data[p : p+8])
-	p = p + 8
+  p := 0
+  rpt := &Report{}
 
-	c.Stat = &OctetString{Data: data[p : p+7], FixedLen: 7}
-	p = p + 7
+  rpt.MsgId = unpackUi64(rawData[p : p+8])
+  p = p + 8
+  rpt.Stat = &OctetString{Data: rawData[p : p+7]}
+  p = p + 7
+  rpt.SubmitTime = &OctetString{Data: rawData[p : p+10]}
+  p = p + 10
+  rpt.DoneTime = &OctetString{Data: rawData[p : p+10]}
+  p = p + 10
+  rpt.DestTerminalId = &OctetString{Data: rawData[p : p+21]}
+  p = p + 21
+  rpt.SMSCSequence = unpackUi32(rawData[p : p+4])
+  p = p + 4
 
-	c.SubmitTime = &OctetString{Data: data[p : p+10], FixedLen: 10}
-	p = p + 10
-
-	c.DoneTime = &OctetString{Data: data[p : p+10], FixedLen: 10}
-	p = p + 10
-
-	c.DestTerminalId = &OctetString{Data: data[p : p+21], FixedLen: 21}
-	p = p + 21
-
-	c.SMSCSequence = unpackUi32(data[p : p+4])
-	p = p + 4
-
-	return c, nil
-
+  return rpt, nil
 }
 
 func (op *Deliver) Serialize() []byte {
