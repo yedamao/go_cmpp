@@ -7,17 +7,6 @@ import (
 	"strconv"
 )
 
-// 状态报告
-type Report struct {
-  // SP提交短信（CMPP_SUBMIT）操作时，
-  // 与SP相连的ISMG产生的Msg_Id
-  MsgId          uint64
-  Stat           *OctetString // 发送短信的应答结果
-  SubmitTime     *OctetString
-  DoneTime       *OctetString
-  DestTerminalId *OctetString
-  SMSCSequence   uint32
-}
 // ISMG向SP送交短信（CMPP_DELIVER）操作
 //
 // CMPP_DELIVER操作的目的是ISMG把从短信中心
@@ -132,30 +121,6 @@ func ParseDeliver(hdr *Header, data []byte) (*Deliver, error) {
 	return op, nil
 }
 
-func ParseReport(rawData []byte) (*Report, error) {
-  if len(rawData) != 60 {
-    return nil, errors.New("ParseReport: len error")
-  }
-
-  p := 0
-  rpt := &Report{}
-
-  rpt.MsgId = unpackUi64(rawData[p : p+8])
-  p = p + 8
-  rpt.Stat = &OctetString{Data: rawData[p : p+7]}
-  p = p + 7
-  rpt.SubmitTime = &OctetString{Data: rawData[p : p+10]}
-  p = p + 10
-  rpt.DoneTime = &OctetString{Data: rawData[p : p+10]}
-  p = p + 10
-  rpt.DestTerminalId = &OctetString{Data: rawData[p : p+21]}
-  p = p + 21
-  rpt.SMSCSequence = unpackUi32(rawData[p : p+4])
-  p = p + 4
-
-  return rpt, nil
-}
-
 func (op *Deliver) Serialize() []byte {
 	b := op.Header.Serialize()
 
@@ -198,8 +163,8 @@ func (op *Deliver) String() string {
 		stat, _ := op.GetStatReport()
 		fmt.Fprintf(&b, "MsgContent: %+v\n", stat)
 	} else {
-		content, _ := ParseMsgContent(int(op.MsgFmt), op.MsgContent)
-		fmt.Fprintln(&b, "MsgContent: ", content)
+		contentSegment, _ := ParseMsgContentSegment(op.MsgFmt, op.MsgContent)
+		fmt.Fprintf(&b, "MsgContent: %+v\n", contentSegment)
 	}
 
 	return b.String()
@@ -213,9 +178,9 @@ func (op *Deliver) IsReport() bool {
 	return op.RegisteredDelivery == IS_REPORT
 }
 
-func (op *Deliver) GetStatReport() (*DeliverStat, error) {
+func (op *Deliver) GetStatReport() (*Report, error) {
 	if op.IsReport() {
-		return ParseDeliverStat(op.MsgContent)
+		return ParseReport(op.MsgContent)
 	}
 	return nil, errors.New("deliver不是状态报告")
 }
