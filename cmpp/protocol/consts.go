@@ -2,7 +2,7 @@ package protocol
 
 const (
 	// 高位4bit表示主版本号,低位4bit表示次版本号
-	VERSION uint8 = 20
+	VERSION uint8 = 0x20
 )
 
 // Command_Id定义
