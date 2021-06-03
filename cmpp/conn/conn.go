@@ -12,7 +12,7 @@ import (
 
 var ErrReadLen = errors.New("Read length not match PacketLength")
 
-// Conn is a sgip connection can read/write protocol Operation
+// Conn is a cmpp connection can read/write protocol Operation
 type Conn struct {
 	net.Conn
 	r *bufio.Reader
