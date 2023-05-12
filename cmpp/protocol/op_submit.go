@@ -358,7 +358,7 @@ func (op *SubmitResp) String() string {
 	var b bytes.Buffer
 	b.WriteString(op.Header.String())
 
-	fmt.Fprintln(&b, "--- DeliverResp ---")
+	fmt.Fprintln(&b, "--- SubmitResp ---")
 	fmt.Fprintln(&b, "MsgID: ", op.MsgId)
 	fmt.Fprintln(&b, "Result: ", op.Result)
 
