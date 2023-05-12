@@ -3,6 +3,9 @@ package protocol
 const (
 	// 高位4bit表示主版本号,低位4bit表示次版本号
 	VERSION uint8 = 0x20
+
+	// 系统中每个消息包最大不超过2K字节
+	MAX_OP_SIZE = 2048
 )
 
 // Command_Id定义
@@ -38,11 +41,12 @@ const (
 )
 
 // 信息格式
-//  0：ASCII串
-//  3：短信写卡操作
-//  4：二进制信息
-//  8：UCS2编码
-//	15：含GB汉字
+//
+//	 0：ASCII串
+//	 3：短信写卡操作
+//	 4：二进制信息
+//	 8：UCS2编码
+//		15：含GB汉字
 const (
 	ASCII   = 0  // ASCII编码
 	BINARY  = 4  // 二进制短消息
