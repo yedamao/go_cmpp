@@ -101,7 +101,7 @@ func (op *Connect) String() string {
 	fmt.Fprintln(&b, "--- Login ---")
 	fmt.Fprintln(&b, "SourceAddr: ", op.SourceAddr)
 	fmt.Fprintln(&b, "AuthenticatorSource: ", op.AuthenticatorSource)
-	fmt.Fprintln(&b, "Version: ", op.Version)
+	fmt.Fprintf(&b, "Version: 0x%x\n", op.Version)
 	fmt.Fprintln(&b, "Timestamp: ", op.Timestamp)
 
 	return b.String()
@@ -181,7 +181,7 @@ func (op *ConnectResp) String() string {
 	fmt.Fprintln(&b, "--- ConnectResp ---")
 	fmt.Fprintln(&b, "Status: ", op.Status)
 	fmt.Fprintln(&b, "AuthenticatorISMG: ", op.AuthenticatorISMG)
-	fmt.Fprintln(&b, "Version: ", op.Version)
+	fmt.Fprintf(&b, "Version: 0x%x\n", op.Version)
 
 	return b.String()
 }
