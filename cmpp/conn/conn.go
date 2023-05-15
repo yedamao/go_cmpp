@@ -11,6 +11,7 @@ import (
 )
 
 var ErrReadLen = errors.New("Read length not match PacketLength")
+var ErrMaxSize = errors.New("Operation Len larger than MAX_OP_SIZE")
 
 // Conn is a cmpp connection can read/write protocol Operation
 type Conn struct {
@@ -36,6 +37,9 @@ func (c *Conn) Read() (protocol.Operation, error) {
 	}
 
 	length := binary.BigEndian.Uint32(l) - 4
+	if length > protocol.MAX_OP_SIZE {
+		return nil, ErrMaxSize
+	}
 
 	data := make([]byte, length)
 	_, err = io.ReadFull(c.r, data)
