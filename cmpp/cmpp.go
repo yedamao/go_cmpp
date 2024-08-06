@@ -126,7 +126,7 @@ func (s *Cmpp) Cancel(msgId uint64) error {
 
 func (s *Cmpp) DeliverResp(sequenceID uint32, msgId uint64, result uint8) error {
 
-	op, err := protocol.NewDeliverResp(sequenceID, msgId, protocol.OK)
+	op, err := protocol.NewDeliverResp(sequenceID, msgId, result)
 	if err != nil {
 		return err
 	}
