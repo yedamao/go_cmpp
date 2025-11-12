@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/yedamao/encoding"
+	"github.com/yedamao/go_cmpp/utils"
 
 	"github.com/yedamao/go_cmpp/cmpp"
 	"github.com/yedamao/go_cmpp/cmpp/protocol"
@@ -38,25 +39,25 @@ func newSeqNum() uint32 {
 
 func main() {
 	if "" == *sourceAddr || "" == *sharedSecret {
-		fmt.Println("Arg error: sourceAddr or sharedSecret must not be empty .")
+		log.Println("Arg error: sourceAddr or sharedSecret must not be empty .")
 		flag.Usage()
 		os.Exit(-1)
 	}
 
 	destNumbers := strings.Split(*destNumber, ",")
-	fmt.Println("destNumbers: ", destNumbers)
+	log.Println("destNumbers: ", destNumbers)
 
 	ts, err := cmpp.NewCmpp(*addr, *sourceAddr, *sharedSecret, newSeqNum)
 	if err != nil {
-		fmt.Println("Connection Err", err)
+		log.Println("Connection Err", err)
 		os.Exit(-1)
 	}
-	fmt.Println("connect succ")
+	log.Println("connect succ")
 	// encoding msg
 	content := encoding.UTF82GBK([]byte(*msg))
 
 	if len(content) > 140 {
-		fmt.Println("msg Err: not suport long sms")
+		log.Println("msg Err: not suport long sms")
 	}
 
 	_, err = ts.Submit(
@@ -64,14 +65,14 @@ func main() {
 		"02", "", *srcId, destNumbers, content,
 	)
 	if err != nil {
-		fmt.Println("Submit err ", err)
+		log.Println("Submit err ", err)
 		os.Exit(-1)
 	}
 
 	for {
 		op, err := ts.Read() // This is blocking
 		if err != nil {
-			fmt.Println("Read Err:", err)
+			log.Println("Read Err:", err)
 			break
 		}
 
@@ -79,18 +80,23 @@ func main() {
 		case protocol.CMPP_SUBMIT_RESP:
 			ts.Terminate()
 			if err := op.Ok(); err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			} else {
-				fmt.Println("Submit Ok")
+				submitResp, ok := op.(*protocol.SubmitResp)
+				if ok {
+					println("Submit Ok：", utils.ToJsonString(submitResp))
+				} else {
+					log.Println("Submit fail")
+				}
 			}
 
 		case protocol.CMPP_TERMINATE_RESP:
-			fmt.Println("Terminate response")
+			log.Println("Terminate response")
 			ts.Close()
 			return
 
 		default:
-			fmt.Printf("Unexpect CmdId: %0x\n", op.GetHeader().Command_Id)
+			log.Printf("Unexpect CmdId: %0x\n", op.GetHeader().Command_Id)
 			ts.Close()
 			return
 		}

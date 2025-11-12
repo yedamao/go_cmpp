@@ -3,21 +3,30 @@ package cmpptest
 import (
 	"flag"
 	"log"
+	"math/rand"
 	"net"
+	"regexp"
 	"time"
 
+	broadcast "github.com/dustin/go-broadcast"
+	"github.com/yedamao/encoding"
 	connp "github.com/yedamao/go_cmpp/cmpp/conn"
 	"github.com/yedamao/go_cmpp/cmpp/protocol"
+	"github.com/yedamao/go_cmpp/utils"
 )
 
 var (
-	mo         = flag.Bool("mo", false, "是否模拟上行短信")
-	rpt        = flag.Bool("rpt", false, "是否模拟上行状态报告")
-	activeTest = flag.Bool("activeTest", false, "是否activeTest")
+	mo                  = flag.Bool("mo", false, "是否模拟上行短信")
+	rpt                 = flag.Bool("rpt", false, "是否模拟上行状态报告")
+	activeTest          = flag.Bool("activeTest", false, "是否activeTest")
+	deliverRptBroadcast = broadcast.NewBroadcaster(10)
 )
 
 func newSession(rawConn net.Conn) {
-	s := &Session{*connp.NewConn(rawConn)}
+	s := &Session{
+		*connp.NewConn(rawConn),
+		"",
+	}
 
 	go s.start()
 
@@ -32,7 +41,7 @@ func newSession(rawConn net.Conn) {
 // 代表sp->运营商的一条连接
 type Session struct {
 	connp.Conn
-	// TODO newSeqFunc
+	sourceAddr string
 }
 
 func (s *Session) ConnectResp(
@@ -107,35 +116,75 @@ func (s *Session) QueryResp(
 	return s.Write(op)
 }
 
-func (s *Session) Deliver(isReport uint8, content []byte) error {
-	var mockId uint32 = 1
-
-	op, err := protocol.NewDeliver(
-		mockId, 12345, "1069000000", "", 0, 0, 0, "16611111111",
-		isReport, content,
-	)
-
-	if err != nil {
-		return err
-	}
-
-	return s.Write(op)
-}
-
 // 模拟状态包
-func (s *Session) mockReport() error {
-	rpt, err := protocol.NewReport(1234, "DELIVRD", "", "", "17600000000", 0)
-	if err != nil {
-		return err
+func (s *Session) mockReport(submit *protocol.Submit) error {
+	candidateStats := [3]string{"DELIVRD", "UNDELIVRD"}
+	for _, destTerminalId := range submit.DestTerminalId {
+		// report
+		randomStat := candidateStats[rand.Intn(len(candidateStats))]
+		rpt, err := protocol.NewReport(submit.MsgId, randomStat, "", "", destTerminalId.String(), 0)
+		if err != nil {
+			return err
+		}
+		// deliver
+		dlvMsgId := rand.Uint64()
+		destId := submit.MsgSrc.String()
+		srcId := destTerminalId.String()
+		dlv, err := protocol.NewDeliver(
+			1, dlvMsgId, destId, "", 0, 0, submit.MsgFmt, srcId,
+			protocol.IS_REPORT, rpt.Serialize(),
+		)
+		if err != nil {
+			return err
+		}
+		err = s.Write(dlv)
+		if err != nil {
+			return err
+		}
+		log.Printf("Deliver success: %s", utils.ToJsonString(dlv))
 	}
-
-	return s.Deliver(protocol.IS_REPORT, rpt.Serialize())
+	return nil
 }
 
 // 模拟上行短信
-func (s *Session) mockMo() error {
+func (s *Session) mockMo(submit *protocol.Submit) error {
+	for _, destTerminalId := range submit.DestTerminalId {
+		// decode content
+		decodedContent := decodeContent(submit.MsgContent, submit.MsgFmt)
+		content := removeSignature(string(decodedContent))
+		// deliver
+		dlvMsgId := rand.Uint64()
+		destId := submit.MsgSrc.String()
+		srcId := destTerminalId.String()
+		dlv, err := protocol.NewDeliver(
+			1, dlvMsgId, destId, "", 0, 0, protocol.UCS2, srcId,
+			protocol.NOT_REPORT, encoding.UTF82UCS2([]byte(content)),
+		)
+		if err != nil {
+			return err
+		}
+		err = s.Write(dlv)
+		if err != nil {
+			return err
+		}
+		log.Printf("Deliver success: %s, %s", content, utils.ToJsonString(dlv))
+	}
+	return nil
+}
 
-	return s.Deliver(protocol.NOT_REPORT, []byte("hello test msg"))
+func decodeContent(content []byte, msgFmt uint8) []byte {
+	switch msgFmt {
+	case protocol.GB18030:
+		return encoding.GBK2UTF8(content)
+	default:
+		return encoding.UCS22UTF8(content)
+	}
+
+}
+
+func removeSignature(content string) string {
+	re := regexp.MustCompile(`^【[^】]*】`)
+	return re.ReplaceAllString(content, "")
 }
 
 func (s *Session) start() {
@@ -151,10 +200,13 @@ func (s *Session) start() {
 			return
 		}
 
-		log.Println(op)
+		//log.Println(op)
 
 		switch op.GetHeader().Command_Id {
+
 		case protocol.CMPP_CONNECT:
+			connect := op.(*protocol.Connect)
+			s.sourceAddr = connect.SourceAddr.String()
 			s.ConnectResp(op.GetHeader().Sequence_Id, 0, "mockauth")
 
 		case protocol.CMPP_SUBMIT:
@@ -162,7 +214,18 @@ func (s *Session) start() {
 			if !ok {
 				log.Println("Type assert error: ", op)
 			}
+			// generate a random msg id
+			if submit.MsgId == 0 {
+				submit.MsgId = rand.Uint64()
+			}
+			content := decodeContent(submit.MsgContent, submit.MsgFmt)
+			log.Printf("Received submit: %s, %s\n\n", content, utils.ToJsonString(submit))
 			s.SubmitResp(submit.Header.Sequence_Id, submit.MsgId, protocol.OK)
+			// delayed reply to the report
+			go func() {
+				time.Sleep(2 * time.Second)
+				deliverRptBroadcast.Submit(submit)
+			}()
 
 		case protocol.CMPP_QUERY:
 			query, ok := op.(*protocol.Query)
@@ -181,6 +244,7 @@ func (s *Session) start() {
 		case protocol.CMPP_ACTIVE_TEST:
 			s.ActiveTestResp(op.GetHeader().Sequence_Id)
 			log.Println("ActiveTest ... ")
+
 		case protocol.CMPP_ACTIVE_TEST_RESP:
 			log.Println("ActiveTest Response")
 
@@ -188,6 +252,7 @@ func (s *Session) start() {
 			s.TerminateResp(op.GetHeader().Sequence_Id)
 			log.Println("Terminate. Close Session")
 			return
+
 		case protocol.CMPP_TERMINATE_RESP:
 			log.Println("Terminate response. Close Session")
 			return
@@ -200,20 +265,25 @@ func (s *Session) start() {
 }
 
 func (s *Session) deliverWorker() {
-
-	doFunc := s.mockMo
-	if *rpt {
-		log.Println("deliver (report) worker running")
-		doFunc = s.mockReport
-	} else {
-		log.Println("deliver (mo) worker running")
-	}
-
-	for {
-		tick := time.NewTicker(5 * time.Second)
-		select {
-		case <-tick.C:
-			if err := doFunc(); err != nil {
+	deliverRptChan := make(chan interface{})
+	deliverRptBroadcast.Register(deliverRptChan)
+	defer deliverRptBroadcast.Unregister(deliverRptChan)
+	for msg := range deliverRptChan {
+		submit := msg.(*protocol.Submit)
+		if submit.MsgSrc.String() != s.sourceAddr {
+			continue
+		}
+		if *rpt {
+			err := s.mockReport(submit)
+			if err != nil {
+				log.Println("Deliver error: ", err)
+				return
+			}
+		}
+		// send mo, randomly
+		if *mo && rand.Intn(3) == 2 {
+			err := s.mockMo(submit)
+			if err != nil {
 				log.Println("Deliver error: ", err)
 				return
 			}

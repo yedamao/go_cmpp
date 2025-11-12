@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
 	"github.com/yedamao/go_cmpp/cmpp"
 	"github.com/yedamao/go_cmpp/cmpp/protocol"
+	"github.com/yedamao/go_cmpp/utils"
 )
 
 var (
@@ -30,22 +30,22 @@ func newSeqNum() uint32 {
 
 func main() {
 	if "" == *sourceAddr || "" == *sharedSecret {
-		fmt.Println("Arg error: sourceAddr or sharedSecret must not be empty .")
+		log.Println("Arg error: sourceAddr or sharedSecret must not be empty .")
 		flag.Usage()
 		os.Exit(-1)
 	}
 
 	ts, err := cmpp.NewCmpp(*addr, *sourceAddr, *sharedSecret, newSeqNum)
 	if err != nil {
-		fmt.Println("Connection Err", err)
+		log.Println("Connection Err", err)
 		os.Exit(-1)
 	}
-	fmt.Println("connect succ")
+	log.Println("connect succ")
 
 	for {
 		op, err := ts.Read() // This is blocking
 		if err != nil {
-			fmt.Println("Read Err:", err)
+			log.Println("Read Err:", err)
 			break
 		}
 
@@ -55,37 +55,34 @@ func main() {
 			if !ok {
 				log.Println("Type assert error: ", op)
 			}
-
 			if dlv.RegisteredDelivery == protocol.IS_REPORT {
-				// 状态报告
 				rpt, err := protocol.ParseReport(dlv.MsgContent)
 				if err != nil {
 					log.Println(err)
 				}
-				fmt.Println(rpt)
+				log.Printf("recv DeliverReport：%s\nReport：%s\n\n", utils.ToJsonString(dlv), utils.ToJsonString(rpt))
 			} else {
-				// 上行短信
-				fmt.Println(dlv)
+				log.Printf("recv Deliver：%s\n", utils.ToJsonString(dlv))
 			}
 			ts.DeliverResp(dlv.Header.Sequence_Id, dlv.MsgId, protocol.OK)
 
 		case protocol.CMPP_ACTIVE_TEST:
-			fmt.Println("recv ActiveTest")
+			log.Println("recv ActiveTest")
 			ts.ActiveTestResp(op.GetHeader().Sequence_Id)
 
 		case protocol.CMPP_TERMINATE:
-			fmt.Println("recv Terminate")
+			log.Println("recv Terminate")
 			ts.TerminateResp(op.GetHeader().Sequence_Id)
 			ts.Close()
 			return
 
 		case protocol.CMPP_TERMINATE_RESP:
-			fmt.Println("Terminate response")
+			log.Println("Terminate response")
 			ts.Close()
 			return
 
 		default:
-			fmt.Printf("Unexpect CmdId: %0x\n", op.GetHeader().Command_Id)
+			log.Printf("Unexpect CmdId: %0x\n", op.GetHeader().Command_Id)
 			ts.Close()
 			return
 		}
