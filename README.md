@@ -1,3 +1,5 @@
+
+
 # go_cmpp
 [![Build Status](https://github.com/yedamao/go_cmpp/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/yedamao/go_cmpp/actions/workflows/build.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/yedamao/go_cmpp)](https://goreportcard.com/report/github.com/yedamao/go_cmpp)
@@ -53,7 +55,7 @@ Usage of ./bin/transmitter:
   -addr string
         smgw addr(运营商地址) (default ":7890")
   -dest-number string
-        接收手机号码, 86..., 多个使用，分割
+        接收手机号码, 86..., 多个使用逗号分割
   -msg string
         短信内容
   -secret string
@@ -78,5 +80,3 @@ Usage of ./bin/receiver:
   -sourceAddr string
         源地址，即SP的企业代码
 ```
-
-
